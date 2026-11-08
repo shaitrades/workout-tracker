@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CNS Recomp">
+    <meta name="theme-color" content="#0A0A0C">
+    <title>CNS-Sparing Protocol & Journal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        oled: '#0A0A0C',
+                        card: '#141418',
+                        cardHover: '#1C1C22',
+                        borderDark: '#26262E',
+                        emeraldAccent: '#10B981',
+                        cyanAccent: '#06B6D4',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0A0A0C;
+            color: #F4F4F6;
+            -webkit-tap-highlight-color: transparent;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+            overscroll-behavior-y: none;
+        }
+        /* Hide scrollbars for smooth horizontal pills */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Custom inputs for iOS numeric entry */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        @keyframes breatheRing {
+            0%, 100% { transform: scale(0.85); opacity: 0.4; border-color: #06B6D4; }
+            40% { transform: scale(1.25); opacity: 1; border-color: #10B981; }
+        }
+        .breathe-circle {
+            transition: transform 1s linear, border-color 0.8s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-300">
+
+    <!-- Top iOS Status & Header Bar -->
+    <header class="sticky top-0 z-30 bg-oled/85 ios-blur border-b border-borderDark px-4 py-3">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-semibold">RPE 8.5 CAP • CNS SPARING</span>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight text-white mt-0.5">Recomp &amp; Trading</h1>
+            </div>
+            
+            <!-- Active Breathing & Rest Timer Pill -->
+            <button id="openTimerBtn" onclick="openTimerModal()" class="flex items-center gap-2 bg-card border border-borderDark hover:border-cyan-500/50 active:scale-95 transition-all px-3 py-1.5 rounded-full shadow-inner">
+                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span id="headerTimerText" class="font-mono text-xs font-semibold text-zinc-200">Pacer / 90s</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md mx-auto px-4 pt-3 pb-8">
+
+        <!-- VIEW 1: WORKOUT TRACKER -->
+        <section id="view-workout" class="space-y-4">
+            
+            <!-- Day Selector Horizontal Pills -->
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1" id="daySelectorContainer">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Current Day Banner -->
+            <div class="bg-gradient-to-br from-card to-[#191922] border border-borderDark rounded-2xl p-4 shadow-lg">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span id="currentDayTag" class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">DAY 1</span>
+                        <h2 id="currentDayTitle" class="text-xl font-bold text-white mt-1.5">Chest &amp; Back</h2>
+                        <p id="currentDaySubtitle" class="text-xs text-zinc-400 mt-0.5 leading-relaxed">2 working sets per movement. Leave 1-2 clean reps in the tank.</p>
+                    </div>
+                    <button onclick="advanceToNextDay()" title="Advance to Next Day in Cycle" class="shrink-0 bg-zinc-800/80 hover:bg-zinc-700 active:scale-95 text-xs font-medium text-zinc-200 px-3 py-2 rounded-xl border border-zinc-700/70 flex items-center gap-1">
+                        <span>Next Day</span>
+                        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Quick Progress Bar -->
+                <div class="mt-3 pt-3 border-t border-borderDark/80 flex items-center justify-between text-xs">
+                    <span class="text-zinc-400 font-medium">Session Completion</span>
+                    <span id="workoutProgressText" class="font-mono text-emerald-400 font-semibold">0 / 12 Sets</span>
+                </div>
+                <div class="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden mt-1.5">
+                    <div id="workoutProgressBar" class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Exercises List Container -->
+            <div id="exercisesContainer" class="space-y-3.5">
+                <!-- Populated dynamically by JS -->
+            </div>
+
+            <!-- Post-Workout Transition & Chemical Bridge Card -->
+            <div class="bg-card border border-borderDark rounded-2xl p-4 space-y-4 shadow-lg">
+                <div class="flex items-center justify-between border-b border-borderDark pb-2.5">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Post-Workout Trading Bridge
+                        </h3>
+                        <p class="text-[11px] text-zinc-400 mt-0.5">Restore neurotransmitters before booting NinjaTrader</p>
+                    </div>
+                    <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">11:00 AM Fast</span>
+                </div>
+
+                <!-- Checkboxes -->
+                <div class="space-y-2.5">
+                    <label class="flex items-center justify-between p-2.5 rounded-xl bg-oled/70 border border-borderDark/70 cursor-pointer active:bg-zinc-900 transition">
+                        <div class="pr-2">
+                            <div class="text-xs font-semibold text-zinc-200">Chemical Bridge Stack Taken</div>
+                            <div class="text-[11px] text-zinc-400">L-Tyrosine, L-Theanine, Alpha-GPC, CDP-Choline</div>
+                        </div>
+                        <input type="checkbox" id="checkChemicalBridge" onchange="saveDraftWorkout()" class="w-5 h-5 rounded accent-emerald-500 bg-zinc-800 border-zinc-600">
+                    </label>
+
+                    <label class="flex items-center justify-between p-2.5 rounded-xl bg-oled/70 border border-borderDark/70 cursor-pointer active:bg-zinc-900 transition">
+                        <div class="pr-2">
+                            <div class="text-xs font-semibold text-zinc-200">Strict RPE 8.5 Cap Maintained</div>
+                            <div class="text-[11px] text-zinc-400">Left 1–2 clean reps in the tank; zero CNS failure</div>
+                        </div>
+                        <input type="checkbox" id="checkRpeCap" checked onchange="saveDraftWorkout()" class="w-5 h-5 rounded accent-emerald-500 bg-zinc-800 border-zinc-600">
+                    </label>
+                </div>
+
+                <!-- Post-Workout Energy State Selector -->
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-2">Post-Workout Mental Capital State</label>
+                    <div class="grid grid-cols-3 gap-2" id="energySelectorGroup">
+                        <button type="button" onclick="selectEnergyState('Primed')" data-state="Primed" class="energy-btn py-2 px-2.5 rounded-xl text-xs font-semibold border transition flex flex-col items-center gap-0.5 bg-emerald-500/15 border-emerald-500 text-emerald-300">
+                            <span>⚡ Primed</span>
+                            <span class="text-[10px] font-normal opacity-80">Sharp for Charts</span>
+                        </button>
+                        <button type="button" onclick="selectEnergyState('Baseline')" data-state="Baseline" class="energy-btn py-2 px-2.5 rounded-xl text-xs font-semibold border transition flex flex-col items-center gap-0.5 bg-oled border-borderDark text-zinc-400">
+                            <span>⚖️ Baseline</span>
+                            <span class="text-[10px] font-normal opacity-80">Calm &amp; Steady</span>
+                        </button>
+                        <button type="button" onclick="selectEnergyState('Depleted')" data-state="Depleted" class="energy-btn py-2 px-2.5 rounded-xl text-xs font-semibold border transition flex flex-col items-center gap-0.5 bg-oled border-borderDark text-zinc-400">
+                            <span>⚠️ Depleted</span>
+                            <span class="text-[10px] font-normal opacity-80">CNS Taxed</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Optional Waist / Biometric & Session Notes -->
+                <div class="grid grid-cols-3 gap-2.5 pt-1">
+                    <div class="col-span-1">
+                        <label class="block text-[11px] font-mono text-zinc-400 mb-1">Waist (cm)</label>
+                        <input type="number" step="0.1" id="waistInput" placeholder="78.0" oninput="saveDraftWorkout()" class="w-full bg-oled border border-borderDark focus:border-emerald-500 rounded-xl px-3 py-2 text-sm font-mono text-white outline-none">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[11px] font-mono text-zinc-400 mb-1">Session &amp; Trading Readiness Note</label>
+                        <input type="text" id="workoutNoteInput" placeholder="e.g., Smooth pump, heart rate dropped fast, ready for NQ..." oninput="saveDraftWorkout()" class="w-full bg-oled border border-borderDark focus:border-emerald-500 rounded-xl px-3 py-2 text-sm text-white outline-none">
+                    </div>
+                </div>
+
+                <!-- Complete & Log Workout CTA -->
+                <button onclick="completeAndLogWorkout()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 active:scale-[0.99] text-oled font-bold text-sm tracking-wide shadow-lg shadow-emerald-500/10 transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>Log Session to Journal</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- VIEW 2: JOURNAL & LIFT HISTORY -->
+        <section id="view-journal" class="hidden space-y-4">
+            <!-- Summary Metrics Row -->
+            <div class="grid grid-cols-3 gap-2.5">
+                <div class="bg-card border border-borderDark rounded-2xl p-3">
+                    <div class="text-[10px] font-mono uppercase text-zinc-400">Logged Sessions</div>
+                    <div id="statTotalSessions" class="text-xl font-bold font-mono text-white mt-0.5">0</div>
+                </div>
+                <div class="bg-card border border-borderDark rounded-2xl p-3">
+                    <div class="text-[10px] font-mono uppercase text-zinc-400">Primed Rate</div>
+                    <div id="statPrimedRate" class="text-xl font-bold font-mono text-emerald-400 mt-0.5">100%</div>
+                </div>
+                <div class="bg-card border border-borderDark rounded-2xl p-3">
+                    <div class="text-[10px] font-mono uppercase text-zinc-400">Latest Waist</div>
+                    <div id="statLatestWaist" class="text-xl font-bold font-mono text-cyan-400 mt-0.5">78.0<span class="text-xs font-normal text-zinc-500">cm</span></div>
+                </div>
+            </div>
+
+            <!-- Search, Filter & Backup Bar -->
+            <div class="bg-card border border-borderDark rounded-2xl p-3 space-y-2.5">
+                <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <svg class="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" id="journalSearchInput" oninput="renderJournalEntries()" placeholder="Search exercise, day, or notes..." class="w-full bg-oled border border-borderDark focus:border-emerald-500 rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none">
+                    </div>
+                    <select id="journalDayFilter" onchange="renderJournalEntries()" class="bg-oled border border-borderDark rounded-xl px-2.5 py-2 text-xs text-zinc-200 outline-none">
+                        <option value="ALL">All Days</option>
+                        <option value="1">Day 1: Chest/Back</option>
+                        <option value="2">Day 2: Shoulders/Arms</option>
+                        <option value="3">Day 3: Legs/Abs</option>
+                        <option value="4">Day 4: Chest/Back/Grip</option>
+                        <option value="5">Day 5: Shoulders/Arms</option>
+                        <option value="6">Day 6: Legs/Calves</option>
+                        <option value="7">Day 7: Recovery</option>
+                    </select>
+                </div>
+
+                <!-- Data Tools -->
+                <div class="flex items-center justify-between pt-2 border-t border-borderDark/70 text-xs">
+                    <span class="text-[11px] text-zinc-400">Local Device Storage Active</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="exportJournalCSV()" class="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-[11px] border border-zinc-700 transition">Export CSV</button>
+                        <button onclick="exportJournalJSON()" class="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-[11px] border border-zinc-700 transition">Backup JSON</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal List -->
+            <div id="journalEntriesContainer" class="space-y-3">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- VIEW 3: SYSTEM PROTOCOL & STACK -->
+        <section id="view-protocol" class="hidden space-y-4">
+            <div class="bg-card border border-borderDark rounded-2xl p-4 space-y-3">
+                <span class="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Operating Architecture</span>
+                <h2 class="text-lg font-bold text-white">CNS-Sparing Recomp Rules</h2>
+                <p class="text-xs text-zinc-300 leading-relaxed">
+                    Pushing high volume to muscle failure drains the exact same neurotransmitters (dopamine, acetylcholine) required to read order flow and footprint charts without emotional friction. This system stimulates hypertrophy via mechanical tension while keeping your central nervous system primed.
+                </p>
+
+                <div class="space-y-2.5 pt-2">
+                    <div class="p-3 rounded-xl bg-oled border border-borderDark">
+                        <div class="text-xs font-bold text-emerald-400 font-mono">1. TWO WORKING SETS ONLY</div>
+                        <p class="text-xs text-zinc-400 mt-1">Execute 1 heavy Top Set (6–8 or 8–10 reps) followed by 1 lighter Back-Off Set (10–12 or 12–15 reps). Slicing junk volume preserves mental capital.</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-oled border border-borderDark">
+                        <div class="text-xs font-bold text-cyan-400 font-mono">2. STRICT RPE 8.5 CAP</div>
+                        <p class="text-xs text-zinc-400 mt-1">Always leave 1 to 2 clean reps in the tank. Never grind to complete failure on compound lifts.</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-oled border border-borderDark">
+                        <div class="text-xs font-bold text-purple-400 font-mono">3. INTRA-WORKOUT PARASYMPATHETIC RESET</div>
+                        <p class="text-xs text-zinc-400 mt-1">Treat rest periods like market lulls. Use 4s nasal inhale / 6s exhale diaphragmatic breathing to drop heart rate rapidly in Kozhikode humidity.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supplement & Nutrition Timing Card -->
+            <div class="bg-card border border-borderDark rounded-2xl p-4 space-y-3">
+                <h3 class="text-sm font-bold text-white flex items-center justify-between">
+                    <span>Chemical Bridge &amp; Nutrition</span>
+                    <span class="text-[11px] font-mono text-cyan-400">78 cm Waist Target</span>
+                </h3>
+                <div class="divide-y divide-borderDark text-xs">
+                    <div class="py-2.5 flex justify-between items-start gap-4">
+                        <span class="font-semibold text-zinc-200 shrink-0">Fasting Window</span>
+                        <span class="text-zinc-400 text-right">Break fast strictly at 11:00 AM with high-protein whole foods.</span>
+                    </div>
+                    <div class="py-2.5 flex justify-between items-start gap-4">
+                        <span class="font-semibold text-emerald-400 shrink-0">Post-Workout Bridge</span>
+                        <span class="text-zinc-400 text-right">L-Tyrosine + L-Theanine + Alpha-GPC + CDP-Choline immediately after cardio/vacuums.</span>
+                    </div>
+                    <div class="py-2.5 flex justify-between items-start gap-4">
+                        <span class="font-semibold text-zinc-200 shrink-0">Daily Foundation</span>
+                        <span class="text-zinc-400 text-right">Creatine Monohydrate, Zinc, Boron, and Omega-3s with dinner.</span>
+                    </div>
+                    <div class="py-2.5 flex justify-between items-start gap-4">
+                        <span class="font-semibold text-zinc-200 shrink-0">Waist Control</span>
+                        <span class="text-zinc-400 text-right">3–4 sets of 30–60s Stomach Vacuums on Leg &amp; Recovery days.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Sample History Button (For Testing/Demo) -->
+            <div class="bg-card border border-borderDark rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                    <div class="text-xs font-bold text-zinc-200">Load Baseline Demo Logs</div>
+                    <div class="text-[11px] text-zinc-400">Populate sample past lifts to preview progression tracking</div>
+                </div>
+                <button onclick="seedSampleLogs()" class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-emerald-400 border border-zinc-700 transition">
+                    Seed Demo Data
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Diaphragmatic Breathing & Rest Timer Modal -->
+    <div id="timerModal" class="fixed inset-0 z-50 hidden bg-black/80 ios-blur flex items-center justify-center p-4">
+        <div class="bg-card border border-borderDark rounded-3xl max-w-sm w-full p-6 text-center space-y-5 shadow-2xl">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-mono uppercase tracking-widest text-cyan-400 font-semibold">Parasympathetic Reset</span>
+                <button onclick="closeTimerModal()" class="text-zinc-400 hover:text-white p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Animated Breathing Visualizer -->
+            <div class="relative w-44 h-44 mx-auto flex items-center justify-center">
+                <div id="breatheRing" class="breathe-circle absolute inset-0 rounded-full border-4 border-cyan-500/40 bg-gradient-to-b from-cyan-500/10 to-emerald-500/10"></div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <span id="modalTimerDisplay" class="text-4xl font-bold font-mono text-white tracking-tight">01:30</span>
+                    <span id="breathePhaseText" class="text-xs font-semibold uppercase tracking-widest text-emerald-400 mt-1.5">4s Inhale • Nasal</span>
+                </div>
+            </div>
+
+            <p class="text-xs text-zinc-400 leading-relaxed">
+                Drop your heart rate between sets. Inhale deeply into your diaphragm for 4 seconds, exhale slowly for 6 seconds.
+            </p>
+
+            <!-- Preset Time Buttons -->
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="startRestTimer(60)" class="py-2 rounded-xl bg-oled border border-borderDark hover:border-cyan-500/50 text-xs font-mono text-zinc-200">60s</button>
+                <button onclick="startRestTimer(90)" class="py-2 rounded-xl bg-oled border border-cyan-500/60 text-xs font-mono text-cyan-300 font-semibold">90s Default</button>
+                <button onclick="startRestTimer(120)" class="py-2 rounded-xl bg-oled border border-borderDark hover:border-cyan-500/50 text-xs font-mono text-zinc-200">120s Heavy</button>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button onclick="stopRestTimer()" class="flex-1 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300">Reset</button>
+                <button onclick="closeTimerModal()" class="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-oled">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Toast Notification -->
+    <div id="toastBanner" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden bg-emerald-500 text-oled font-bold text-xs px-4 py-2.5 rounded-full shadow-xl items-center gap-2 transition-all">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span id="toastMessage">Logged to Journal</span>
+    </div>
+
+    <!-- Bottom Sticky iOS Tab Bar -->
+    <nav class="fixed bottom-0 inset-x-0 z-40 bg-oled/90 ios-blur border-t border-borderDark pb-[env(safe-area-inset-bottom)]">
+        <div class="max-w-md mx-auto grid grid-cols-3 h-16">
+            <button onclick="switchTab('workout')" id="tabBtn-workout" class="flex flex-col items-center justify-center gap-1 text-emerald-400 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span class="text-[11px] font-semibold">Today's Lift</span>
+            </button>
+            <button onclick="switchTab('journal')" id="tabBtn-journal" class="flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-zinc-300 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <span class="text-[11px] font-semibold">Journal &amp; PRs</span>
+            </button>
+            <button onclick="switchTab('protocol')" id="tabBtn-protocol" class="flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-zinc-300 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                </svg>
+                <span class="text-[11px] font-semibold">CNS Protocol</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        // ==========================================
+        // 1. MASTER 7-DAY CNS-SPARING CYCLE PROTOCOL
+        // ==========================================
+        const CYCLE_PROTOCOL = [
+            {
+                day: 1,
+                shortName: "Day 1",
+                title: "Chest & Back",
+                subtitle: "CNS-Sparing Cycle Reset • RPE 8.5 Cap • Preserve mental capital for NinjaTrader.",
+                exercises: [
+                    { id: "d1_incline_db", name: "Incline Dumbbell Press", type: "lift", topTarget: "6–8 reps", backoffTarget: "10–12 reps", cue: "Drive biceps toward each other; hands are just hooks. Leave 2 clean reps in the tank." },
+                    { id: "d1_wide_pulldown", name: "Wide Inward Grip Pulldowns", type: "lift", topTarget: "6–8 reps", backoffTarget: "10–12 reps", cue: "Drive elbows straight down into your back pockets; keep torso upright without swinging." },
+                    { id: "d1_flat_machine", name: "Flat Machine Chest Press", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Glue shoulder blades to the pad and press your back deep into the seat." },
+                    { id: "d1_tbar_row", name: "Chest-Supported T-Bar Rows", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Flare elbows slightly wide; crush a pencil between your shoulder blades at peak contraction." },
+                    { id: "d1_cable_fly", name: "Incline Cable Flyes", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Hug a wide tree; bring your inner elbows close together at the top." },
+                    { id: "d1_straight_lat", name: "Straight-Arm Lat Pulldowns", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Keep arms rigid; sweep the bar down toward your thighs and crush apples in your armpits." },
+                    { id: "d1_zone2", name: "Zone 2 Incline Walk / Cycle", type: "duration", topTarget: "15–20 mins", backoffTarget: "Nasal Breathing", cue: "Flush metabolites and drop heart rate into a parasympathetic baseline." }
+                ]
+            },
+            {
+                day: 2,
+                shortName: "Day 2",
+                title: "Shoulders, Arms & Forearms",
+                subtitle: "Precision isolation • Stop 1–2 reps shy of failure to protect acetylcholine.",
+                exercises: [
+                    { id: "d2_seated_db_press", name: "Seated Dumbbell Shoulder Press", type: "lift", topTarget: "6–8 reps", backoffTarget: "10–12 reps", cue: "Drive elbows up toward your ears; do not lock out at the top to keep constant delt tension." },
+                    { id: "d2_cable_lat_raise", name: "Cable Lateral Raises", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Throw the cuffs outward toward the side walls; keep traps completely relaxed." },
+                    { id: "d2_skull_crushers", name: "EZ-Bar Skull Crushers", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Pin elbows pointed straight at the ceiling; move only the forearms." },
+                    { id: "d2_incline_curls", name: "Incline Dumbbell Curls", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Let arms hang dead at the bottom for a full stretch; twist pinkies up hard at the peak." },
+                    { id: "d2_rope_pushdown", name: "Triceps Rope Pushdowns", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Drive straight down and aggressively rip the rope apart at the bottom." },
+                    { id: "d2_hammer_curls", name: "Hammer Curls", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Keep thumbs pointed to the ceiling; squeeze the outer forearm and brachioradialis." },
+                    { id: "d2_wrist_curls", name: "Seated Barbell Wrist Curls", type: "lift", topTarget: "15–20 reps", backoffTarget: "15–20 reps", cue: "Rest forearms on a bench; let the bar roll to your fingertips and curl all the way up." },
+                    { id: "d2_zone2", name: "Zone 2 Incline Walk", type: "duration", topTarget: "15 mins", backoffTarget: "Parasympathetic", cue: "Slow diaphragmatic nasal breathing to transition out of sympathetic drive." }
+                ]
+            },
+            {
+                day: 3,
+                shortName: "Day 3",
+                title: "Legs & Abs",
+                subtitle: "High mechanical tension, controlled CNS tax • Lock in the 78 cm waist.",
+                exercises: [
+                    { id: "d3_rdl", name: "Romanian Deadlifts (RDLs)", type: "lift", topTarget: "6–8 reps", backoffTarget: "10–12 reps", cue: "Push hips straight back until hamstrings load; keep spine flat and leave 2 reps in the tank." },
+                    { id: "d3_leg_press", name: "Leg Press (High Stance)", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Plant feet high on the deck to load glutes and hamstrings; drive through your heels." },
+                    { id: "d3_leg_ext", name: "Seated Leg Extensions", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Point toes back toward you and lock thighs into the pad; brutal squeeze at the very top." },
+                    { id: "d3_hanging_raises", name: "Hanging Leg Raises", type: "lift", topTarget: "12–15 reps", backoffTarget: "12–15 reps", cue: "Roll pelvis up toward your sternum; do not swing your feet. Protects the 78 cm waistline." },
+                    { id: "d3_vacuums", name: "Stomach Vacuums", type: "duration", topTarget: "3x 45–60 sec", backoffTarget: "Nasal Hold", cue: "Exhale all air, pull navel deep into your spine, and reset your parasympathetic system." }
+                ]
+            },
+            {
+                day: 4,
+                shortName: "Day 4",
+                title: "Chest, Back & Grip",
+                subtitle: "Torso density & dense forearm thickness • Strict RPE 8.5.",
+                exercises: [
+                    { id: "d4_smith_incline", name: "Smith Machine Incline Press", type: "lift", topTarget: "6–8 reps", backoffTarget: "10–12 reps", cue: "Drive upper chest up to the bar; stop just short of locking elbows for constant tension." },
+                    { id: "d4_close_pulldown", name: "Close Inward Grip Pulldowns", type: "lift", topTarget: "6–8 reps", backoffTarget: "10–12 reps", cue: "Let shoulders rise for a full stretch at the top; scrape elbows tight against your ribs." },
+                    { id: "d4_seated_row", name: "Close Inward Grip Seated Cable Rows", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Keep chest puffed high; pull low into your belly button and crush shoulder blades." },
+                    { id: "d4_cable_pullover", name: "Standing Cable Pullovers", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Slight bend in elbows, push hips back to load lats, sweep attachment to your thighs." },
+                    { id: "d4_pec_deck", name: "Pec Deck / Machine Flyes", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Keep chest high; think about smashing inner elbows together rather than hands." },
+                    { id: "d4_farmers_walk", name: "Heavy Farmer’s Walks", type: "lift", topTarget: "45–60 sec", backoffTarget: "45–60 sec", cue: "Grab heavy dumbbells, brace core brutally, walk tall. Torches fat & builds dense forearms." },
+                    { id: "d4_zone2", name: "Zone 2 Incline Walk", type: "duration", topTarget: "15 mins", backoffTarget: "Heart Rate Drop", cue: "Slow nasal breathing to cool down before taking your nootropic stack." }
+                ]
+            },
+            {
+                day: 5,
+                shortName: "Day 5",
+                title: "Shoulders, Arms & Forearms",
+                subtitle: "Pump & mechanical tension without CNS burnout.",
+                exercises: [
+                    { id: "d5_seated_db_press", name: "Seated Dumbbell Press", type: "lift", topTarget: "6–8 reps", backoffTarget: "10–12 reps", cue: "Drive elbows up to your ears; leave 2 clean reps in the tank." },
+                    { id: "d5_cable_lat", name: "Cable Lateral Raises", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Throw weight outward to the side walls; keep traps completely relaxed." },
+                    { id: "d5_rev_pec_deck", name: "Reverse Pec Deck (Rear Delts)", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Push back with your knuckles; keep shoulder blades frozen in place." },
+                    { id: "d5_oh_triceps", name: "Overhead Cable Triceps Extension", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Point elbows straight ahead; throw hands forward and rip the rope apart." },
+                    { id: "d5_preacher_curl", name: "Preacher Curls", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Jam armpits deep into the pad; focus purely on the squeeze, zero ego weight." },
+                    { id: "d5_rev_bb_curl", name: "Reverse Barbell Curls", type: "lift", topTarget: "10–12 reps", backoffTarget: "12–15 reps", cue: "Palms face the floor; crush the thick top meat of your forearms." },
+                    { id: "d5_zone2", name: "Zone 2 Incline Walk", type: "duration", topTarget: "15 mins", backoffTarget: "Nasal Reset", cue: "Transition nervous system back to baseline before heading to your desk." }
+                ]
+            },
+            {
+                day: 6,
+                shortName: "Day 6",
+                title: "Legs & Calves",
+                subtitle: "Final lifting day of cycle • Protect mental capital with diaphragmatic breathing.",
+                exercises: [
+                    { id: "d6_rdl", name: "Romanian Deadlifts (RDLs)", type: "lift", topTarget: "6–8 reps", backoffTarget: "10–12 reps", cue: "Push hips to the wall behind you; stop before lower back rounds and leave 2 reps in the tank." },
+                    { id: "d6_leg_press", name: "Leg Press (High Stance)", type: "lift", topTarget: "8–10 reps", backoffTarget: "10–12 reps", cue: "Feet high on platform to isolate hamstrings & glutes; drive entirely through heels." },
+                    { id: "d6_seated_calf", name: "Seated Calf Raises", type: "lift", topTarget: "12–15 reps", backoffTarget: "15–20 reps", cue: "Let heels drop for a deep stretch at the bottom; drive up hard through big toes." },
+                    { id: "d6_standing_calf", name: "Standing Calf Raises", type: "lift", topTarget: "12–15 reps", backoffTarget: "15–20 reps", cue: "Keep knees mostly locked; pause and crush the weight at peak contraction." },
+                    { id: "d6_vacuums", name: "Stomach Vacuums", type: "duration", topTarget: "4x 45–60 sec", backoffTarget: "78 cm Target", cue: "Blow all air out, pull belly button to spine, and shift into a parasympathetic state." }
+                ]
+            },
+            {
+                day: 7,
+                shortName: "Day 7",
+                title: "Active Recovery & System Reset",
+                subtitle: "Zero gym sets • High NEAT, Waist Maintenance & Trading Execution Review.",
+                exercises: [
+                    { id: "d7_neat", name: "8,000–10,000 Easy Walking Steps", type: "duration", topTarget: "8k–10k Steps", backoffTarget: "Zero CNS Tax", cue: "Stay out of the weight room. Clear metabolic waste and burn fat without sympathetic fatigue." },
+                    { id: "d7_vacuums", name: "Relaxed Stomach Vacuums", type: "duration", topTarget: "4x 45–60 sec", backoffTarget: "78 cm Waist", cue: "Perform fasted or relaxed with slow nasal breathing to lock in transverse abdominis." },
+                    { id: "d7_review", name: "Trading Footage & Notion Audit", type: "duration", topTarget: "30 mins", backoffTarget: "Cognitive Reset", cue: "Review weekly NinjaTrader execution discipline and detach from outcome variance." }
+                ]
+            }
+        ];
+
+        // ==========================================
+        // 2. STATE & LOCAL STORAGE KEYS
+        // ==========================================
+        const STORAGE_KEYS = {
+            CURRENT_DAY: 'cns_recomp_current_day_v1',
+            JOURNAL_LOGS: 'cns_recomp_journal_logs_v1',
+            DRAFTS: 'cns_recomp_day_drafts_v1'
+        };
+
+        let currentDayNumber = parseInt(localStorage.getItem(STORAGE_KEYS.CURRENT_DAY)) || 1;
+        let journalLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.JOURNAL_LOGS) || '[]');
+        let dayDrafts = JSON.parse(localStorage.getItem(STORAGE_KEYS.DRAFTS) || '{}');
+        let selectedEnergyState = 'Primed';
+
+        // Timer state
+        let timerInterval = null;
+        let breatheInterval = null;
+        let remainingSeconds = 90;
+
+        // ==========================================
+        // 3. INITIALIZATION & WORKOUT RENDERING
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            renderDayPills();
+            loadDayWorkout(currentDayNumber);
+            updateJournalStats();
+        });
+
+        function renderDayPills() {
+            const container = document.getElementById('daySelectorContainer');
+            container.innerHTML = CYCLE_PROTOCOL.map(d => {
+                const isSelected = d.day === currentDayNumber;
+                return `
+                    <button onclick="selectCycleDay(${d.day})" class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
+                        isSelected 
+                        ? 'bg-emerald-500 text-oled border-emerald-400 shadow-md shadow-emerald-500/20 font-bold' 
+                        : 'bg-card text-zinc-400 border-borderDark hover:text-zinc-200'
+                    }">
+                        <span class="font-mono">${d.shortName}</span>
+                        <span class="opacity-75 hidden sm:inline">• ${d.title.split('&')[0].trim()}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectCycleDay(dayNum) {
+            currentDayNumber = dayNum;
+            localStorage.setItem(STORAGE_KEYS.CURRENT_DAY, String(dayNum));
+            renderDayPills();
+            loadDayWorkout(dayNum);
+        }
+
+        function advanceToNextDay() {
+            const nextDay = currentDayNumber >= 7 ? 1 : currentDayNumber + 1;
+            selectCycleDay(nextDay);
+            showToast(`Switched to Day ${nextDay}: ${CYCLE_PROTOCOL[nextDay - 1].title}`);
+        }
+
+        // Lookup the most recent logged weight & reps for an exercise from journal history
+        function getLastLoggedPerformance(exerciseId) {
+            for (const entry of journalLogs) {
+                if (entry.exercises && entry.exercises[exerciseId]) {
+                    return entry.exercises[exerciseId];
+                }
+            }
+            return null;
+        }
+
+        function loadDayWorkout(dayNum) {
+            const dayObj = CYCLE_PROTOCOL.find(d => d.day === dayNum) || CYCLE_PROTOCOL[0];
+            document.getElementById('currentDayTag').textContent = `DAY ${dayObj.day} OF 7 • CNS-SPARING`;
+            document.getElementById('currentDayTitle').textContent = dayObj.title;
+            document.getElementById('currentDaySubtitle').textContent = dayObj.subtitle;
+
+            const draft = dayDrafts[dayNum] || { sets: {}, chemicalBridge: false, rpeCap: true, energy: 'Primed', waist: '', note: '' };
+            
+            document.getElementById('checkChemicalBridge').checked = !!draft.chemicalBridge;
+            document.getElementById('checkRpeCap').checked = draft.rpeCap !== undefined ? draft.rpeCap : true;
+            document.getElementById('waistInput').value = draft.waist || '';
+            document.getElementById('workoutNoteInput').value = draft.note || '';
+            selectEnergyState(draft.energy || 'Primed', false);
+
+            const container = document.getElementById('exercisesContainer');
+            container.innerHTML = dayObj.exercises.map((ex, idx) => {
+                const lastPerf = getLastLoggedPerformance(ex.id);
+                const exDraft = (draft.sets && draft.sets[ex.id]) || {
+                    s1Weight: lastPerf?.s1Weight || '',
+                    s1Reps: lastPerf?.s1Reps || '',
+                    s1Done: false,
+                    s2Weight: lastPerf?.s2Weight || '',
+                    s2Reps: lastPerf?.s2Reps || '',
+                    s2Done: false
+                };
+
+                if (ex.type === 'duration') {
+                    return `
+                        <div class="bg-card border border-borderDark rounded-2xl p-4 transition">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">PARASYMPATHETIC / ZONE 2</span>
+                                        <span class="text-xs font-mono text-zinc-400">${ex.topTarget}</span>
+                                    </div>
+                                    <h3 class="text-sm font-bold text-white mt-1.5">${idx + 1}. ${ex.name}</h3>
+                                    <p class="text-xs text-zinc-400 mt-1 italic">Cue: “${ex.cue}”</p>
+                                </div>
+                                <label class="flex items-center gap-2 bg-oled border border-borderDark px-3 py-2 rounded-xl cursor-pointer shrink-0">
+                                    <span class="text-xs font-mono text-zinc-300">Done</span>
+                                    <input type="checkbox" data-ex="${ex.id}" data-field="s1Done" ${exDraft.s1Done ? 'checked' : ''} onchange="handleSetInputChange('${ex.id}')" class="w-5 h-5 rounded accent-emerald-500">
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const lastBadgeTop = lastPerf && (lastPerf.s1Weight || lastPerf.s1Reps)
+                    ? `Last: ${lastPerf.s1Weight || 0}kg × ${lastPerf.s1Reps || 0}`
+                    : `Target: ${ex.topTarget}`;
+
+                const lastBadgeBackoff = lastPerf && (lastPerf.s2Weight || lastPerf.s2Reps)
+                    ? `Last: ${lastPerf.s2Weight || 0}kg × ${lastPerf.s2Reps || 0}`
+                    : `Target: ${ex.backoffTarget}`;
+
+                return `
+                    <div class="bg-card border border-borderDark rounded-2xl p-4 space-y-3 shadow-md">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <h3 class="text-sm font-bold text-white">${idx + 1}. ${ex.name}</h3>
+                                <p class="text-xs text-emerald-400/90 mt-0.5 leading-snug">Cue: “${ex.cue}”</p>
+                            </div>
+                            <span class="shrink-0 text-[10px] font-mono bg-zinc-800/90 text-zinc-300 px-2 py-0.5 rounded border border-zinc-700">RPE 8.5</span>
+                        </div>
+
+                        <!-- Set Table Header -->
+                        <div class="grid grid-cols-12 gap-2 text-[10px] font-mono uppercase text-zinc-500 pt-1 border-t border-borderDark/70">
+                            <div class="col-span-5">Working Set</div>
+                            <div class="col-span-3 text-center">Weight (kg)</div>
+                            <div class="col-span-2 text-center">Reps</div>
+                            <div class="col-span-2 text-right">Log</div>
+                        </div>
+
+                        <!-- SET 1: TOP SET -->
+                        <div class="grid grid-cols-12 gap-2 items-center p-2 rounded-xl ${exDraft.s1Done ? 'bg-emerald-950/25 border border-emerald-500/30' : 'bg-oled/80 border border-borderDark/70'} transition">
+                            <div class="col-span-5">
+                                <div class="text-xs font-bold text-emerald-400">Set 1 • Top Set</div>
+                                <div class="text-[10px] font-mono text-zinc-400">${lastBadgeTop}</div>
+                            </div>
+                            <div class="col-span-3">
+                                <input type="number" step="0.5" inputmode="decimal" placeholder="kg" value="${exDraft.s1Weight}" data-ex="${ex.id}" data-field="s1Weight" oninput="handleSetInputChange('${ex.id}')" class="w-full bg-card border border-borderDark focus:border-emerald-500 rounded-lg py-1.5 px-2 text-center font-mono text-sm text-white outline-none">
+                            </div>
+                            <div class="col-span-2">
+                                <input type="number" inputmode="numeric" placeholder="reps" value="${exDraft.s1Reps}" data-ex="${ex.id}" data-field="s1Reps" oninput="handleSetInputChange('${ex.id}')" class="w-full bg-card border border-borderDark focus:border-emerald-500 rounded-lg py-1.5 px-1 text-center font-mono text-sm text-white outline-none">
+                            </div>
+                            <div class="col-span-2 flex justify-end">
+                                <input type="checkbox" data-ex="${ex.id}" data-field="s1Done" ${exDraft.s1Done ? 'checked' : ''} onchange="handleSetInputChange('${ex.id}', true)" class="w-5 h-5 rounded accent-emerald-500 cursor-pointer">
+                            </div>
+                        </div>
+
+                        <!-- SET 2: BACK-OFF SET -->
+                        <div class="grid grid-cols-12 gap-2 items-center p-2 rounded-xl ${exDraft.s2Done ? 'bg-cyan-950/25 border border-cyan-500/30' : 'bg-oled/80 border border-borderDark/70'} transition">
+                            <div class="col-span-5">
+                                <div class="text-xs font-bold text-cyan-400">Set 2 • Back-Off</div>
+                                <div class="text-[10px] font-mono text-zinc-400">${lastBadgeBackoff}</div>
+                            </div>
+                            <div class="col-span-3">
+                                <input type="number" step="0.5" inputmode="decimal" placeholder="kg" value="${exDraft.s2Weight}" data-ex="${ex.id}" data-field="s2Weight" oninput="handleSetInputChange('${ex.id}')" class="w-full bg-card border border-borderDark focus:border-cyan-500 rounded-lg py-1.5 px-2 text-center font-mono text-sm text-white outline-none">
+                            </div>
+                            <div class="col-span-2">
+                                <input type="number" inputmode="numeric" placeholder="reps" value="${exDraft.s2Reps}" data-ex="${ex.id}" data-field="s2Reps" oninput="handleSetInputChange('${ex.id}')" class="w-full bg-card border border-borderDark focus:border-cyan-500 rounded-lg py-1.5 px-1 text-center font-mono text-sm text-white outline-none">
+                            </div>
+                            <div class="col-span-2 flex justify-end">
+                                <input type="checkbox" data-ex="${ex.id}" data-field="s2Done" ${exDraft.s2Done ? 'checked' : ''} onchange="handleSetInputChange('${ex.id}', true)" class="w-5 h-5 rounded accent-cyan-500 cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            updateWorkoutProgress();
+        }
+
+        function handleSetInputChange(exId, triggerRest = false) {
+            saveDraftWorkout();
+            updateWorkoutProgress();
+            if (triggerRest) {
+                const checkbox = document.querySelector(`input[data-ex="${exId}"][data-field="s1Done"]:checked, input[data-ex="${exId}"][data-field="s2Done"]:checked`);
+                if (checkbox) {
+                    startBackgroundRestCountdown(90);
+                }
+            }
+        }
+
+        function saveDraftWorkout() {
+            const dayObj = CYCLE_PROTOCOL.find(d => d.day === currentDayNumber);
+            if (!dayObj) return;
+
+            const setsData = {};
+            dayObj.exercises.forEach(ex => {
+                const getVal = (field) => {
+                    const el = document.querySelector(`input[data-ex="${ex.id}"][data-field="${field}"]`);
+                    if (!el) return '';
+                    return el.type === 'checkbox' ? el.checked : el.value;
+                };
+                setsData[ex.id] = {
+                    name: ex.name,
+                    type: ex.type,
+                    s1Weight: getVal('s1Weight'),
+                    s1Reps: getVal('s1Reps'),
+                    s1Done: getVal('s1Done'),
+                    s2Weight: getVal('s2Weight'),
+                    s2Reps: getVal('s2Reps'),
+                    s2Done: getVal('s2Done')
+                };
+            });
+
+            dayDrafts[currentDayNumber] = {
+                sets: setsData,
+                chemicalBridge: document.getElementById('checkChemicalBridge').checked,
+                rpeCap: document.getElementById('checkRpeCap').checked,
+                energy: selectedEnergyState,
+                waist: document.getElementById('waistInput').value,
+                note: document.getElementById('workoutNoteInput').value
+            };
+
+            localStorage.setItem(STORAGE_KEYS.DRAFTS, JSON.stringify(dayDrafts));
+        }
+
+        function updateWorkoutProgress() {
+            const dayObj = CYCLE_PROTOCOL.find(d => d.day === currentDayNumber);
+            if (!dayObj) return;
+
+            let totalSets = 0;
+            let completedSets = 0;
+
+            dayObj.exercises.forEach(ex => {
+                if (ex.type === 'duration') {
+                    totalSets += 1;
+                    const s1 = document.querySelector(`input[data-ex="${ex.id}"][data-field="s1Done"]`);
+                    if (s1 && s1.checked) completedSets += 1;
+                } else {
+                    totalSets += 2;
+                    const s1 = document.querySelector(`input[data-ex="${ex.id}"][data-field="s1Done"]`);
+                    const s2 = document.querySelector(`input[data-ex="${ex.id}"][data-field="s2Done"]`);
+                    if (s1 && s1.checked) completedSets += 1;
+                    if (s2 && s2.checked) completedSets += 1;
+                }
+            });
+
+            const pct = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+            document.getElementById('workoutProgressText').textContent = `${completedSets} / ${totalSets} Sets (${pct}%)`;
+            document.getElementById('workoutProgressBar').style.width = `${pct}%`;
+        }
+
+        function selectEnergyState(state, save = true) {
+            selectedEnergyState = state;
+            document.querySelectorAll('.energy-btn').forEach(btn => {
+                const btnState = btn.getAttribute('data-state');
+                if (btnState === state) {
+                    if (state === 'Primed') {
+                        btn.className = 'energy-btn py-2 px-2.5 rounded-xl text-xs font-semibold border transition flex flex-col items-center gap-0.5 bg-emerald-500/15 border-emerald-500 text-emerald-300';
+                    } else if (state === 'Baseline') {
+                        btn.className = 'energy-btn py-2 px-2.5 rounded-xl text-xs font-semibold border transition flex flex-col items-center gap-0.5 bg-cyan-500/15 border-cyan-500 text-cyan-300';
+                    } else {
+                        btn.className = 'energy-btn py-2 px-2.5 rounded-xl text-xs font-semibold border transition flex flex-col items-center gap-0.5 bg-amber-500/15 border-amber-500 text-amber-300';
+                    }
+                } else {
+                    btn.className = 'energy-btn py-2 px-2.5 rounded-xl text-xs font-semibold border transition flex flex-col items-center gap-0.5 bg-oled border-borderDark text-zinc-400';
+                }
+            });
+            if (save) saveDraftWorkout();
+        }
+
+        // ==========================================
+        // 4. COMPLETE & SAVE SESSION TO JOURNAL
+        // ==========================================
+        function completeAndLogWorkout() {
+            saveDraftWorkout();
+            const dayObj = CYCLE_PROTOCOL.find(d => d.day === currentDayNumber);
+            const currentDraft = dayDrafts[currentDayNumber];
+
+            const newEntry = {
+                id: 'log_' + Date.now(),
+                timestamp: new Date().toISOString(),
+                dayNumber: dayObj.day,
+                dayTitle: dayObj.title,
+                energyState: selectedEnergyState,
+                chemicalBridge: currentDraft.chemicalBridge,
+                rpeCap: currentDraft.rpeCap,
+                waist: currentDraft.waist || '',
+                note: currentDraft.note || '',
+                exercises: currentDraft.sets || {}
+            };
+
+            journalLogs.unshift(newEntry);
+            localStorage.setItem(STORAGE_KEYS.JOURNAL_LOGS, JSON.stringify(journalLogs));
+
+            // Clear completion checkboxes for next cycle while keeping weights pre-filled
+            Object.keys(currentDraft.sets).forEach(exId => {
+                currentDraft.sets[exId].s1Done = false;
+                currentDraft.sets[exId].s2Done = false;
+            });
+            currentDraft.note = '';
+            dayDrafts[currentDayNumber] = currentDraft;
+            localStorage.setItem(STORAGE_KEYS.DRAFTS, JSON.stringify(dayDrafts));
+
+            updateJournalStats();
+            showToast(`Day ${dayObj.day} logged! Advancing cycle...`);
+
+            // Advance to next day automatically & switch to Journal tab to show confirmation
+            const nextDay = currentDayNumber >= 7 ? 1 : currentDayNumber + 1;
+            selectCycleDay(nextDay);
+            switchTab('journal');
+        }
+
+        // ==========================================
+        // 5. JOURNAL & HISTORY RENDERING
+        // ==========================================
+        function updateJournalStats() {
+            document.getElementById('statTotalSessions').textContent = journalLogs.length;
+
+            if (journalLogs.length > 0) {
+                const primedCount = journalLogs.filter(l => l.energyState === 'Primed' || l.energyState === 'Baseline').length;
+                const rate = Math.round((primedCount / journalLogs.length) * 100);
+                document.getElementById('statPrimedRate').textContent = `${rate}%`;
+
+                const entryWithWaist = journalLogs.find(l => l.waist && String(l.waist).trim() !== '');
+                if (entryWithWaist) {
+                    document.getElementById('statLatestWaist').innerHTML = `${entryWithWaist.waist}<span class="text-xs font-normal text-zinc-500">cm</span>`;
+                }
+            }
+        }
+
+        function renderJournalEntries() {
+            const container = document.getElementById('journalEntriesContainer');
+            const query = (document.getElementById('journalSearchInput')?.value || '').toLowerCase().trim();
+            const dayFilter = document.getElementById('journalDayFilter')?.value || 'ALL';
+
+            const filtered = journalLogs.filter(entry => {
+                if (dayFilter !== 'ALL' && String(entry.dayNumber) !== dayFilter) return false;
+                if (!query) return true;
+
+                const inTitle = entry.dayTitle.toLowerCase().includes(query);
+                const inNote = (entry.note || '').toLowerCase().includes(query);
+                const inEx = Object.values(entry.exercises || {}).some(ex => (ex.name || '').toLowerCase().includes(query));
+                return inTitle || inNote || inEx;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-card border border-borderDark rounded-2xl p-8 text-center space-y-2">
+                        <div class="text-sm font-bold text-zinc-300">No Logged Workouts Yet</div>
+                        <p class="text-xs text-zinc-500 max-w-xs mx-auto">Complete your Top & Back-Off sets in the Today's Lift tab, or load demo data from the CNS Protocol tab.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(entry => {
+                const dateObj = new Date(entry.timestamp);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                let badgeClass = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+                if (entry.energyState === 'Baseline') badgeClass = 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
+                if (entry.energyState === 'Depleted') badgeClass = 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+
+                const exListHtml = Object.values(entry.exercises || {}).map(ex => {
+                    if (ex.type === 'duration') {
+                        return `
+                            <div class="flex items-center justify-between py-1 text-xs border-b border-borderDark/40 last:border-0">
+                                <span class="text-zinc-300">${ex.name}</span>
+                                <span class="font-mono text-[11px] text-cyan-400">${ex.s1Done ? '✓ Completed' : 'Logged'}</span>
+                            </div>
+                        `;
+                    }
+                    const s1Text = (ex.s1Weight || ex.s1Reps) ? `${ex.s1Weight || 0}kg × ${ex.s1Reps || 0}` : '—';
+                    const s2Text = (ex.s2Weight || ex.s2Reps) ? `${ex.s2Weight || 0}kg × ${ex.s2Reps || 0}` : '—';
+                    return `
+                        <div class="flex items-center justify-between py-1.5 text-xs border-b border-borderDark/40 last:border-0">
+                            <span class="text-zinc-200 font-medium pr-2">${ex.name}</span>
+                            <div class="flex items-center gap-2 shrink-0 font-mono text-[11px]">
+                                <span class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300">T: ${s1Text}</span>
+                                <span class="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300">B: ${s2Text}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="bg-card border border-borderDark rounded-2xl p-4 space-y-3 shadow-md">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">DAY ${entry.dayNumber}</span>
+                                    <span class="text-xs font-mono text-zinc-400">${formattedDate} • ${formattedTime}</span>
+                                </div>
+                                <h3 class="text-base font-bold text-white mt-1">${entry.dayTitle}</h3>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${badgeClass}">
+                                    ${entry.energyState}
+                                </span>
+                                <button onclick="deleteJournalEntry('${entry.id}')" title="Delete Log" class="text-zinc-500 hover:text-rose-400 p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        ${entry.note || entry.waist ? `
+                            <div class="p-2.5 rounded-xl bg-oled/80 border border-borderDark/70 text-xs text-zinc-300 space-y-1">
+                                ${entry.waist ? `<div class="font-mono text-[11px] text-cyan-400">Waist Check: ${entry.waist} cm</div>` : ''}
+                                ${entry.note ? `<div>“${entry.note}”</div>` : ''}
+                            </div>
+                        ` : ''}
+
+                        <div class="pt-1">
+                            ${exListHtml}
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-borderDark/60 text-[11px] text-zinc-400">
+                            <span>${entry.chemicalBridge ? '✓ Chemical Bridge Stack' : '○ Stack Unchecked'}</span>
+                            <span>${entry.rpeCap ? '✓ RPE 8.5 Respected' : '⚠️ Pushed Past Cap'}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteJournalEntry(id) {
+            journalLogs = journalLogs.filter(item => item.id !== id);
+            localStorage.setItem(STORAGE_KEYS.JOURNAL_LOGS, JSON.stringify(journalLogs));
+            updateJournalStats();
+            renderJournalEntries();
+            showToast('Journal entry deleted');
+        }
+
+        // ==========================================
+        // 6. PARASYMPATHETIC BREATHING & REST TIMER
+        // ==========================================
+        function openTimerModal() {
+            document.getElementById('timerModal').classList.remove('hidden');
+            startRestTimer(remainingSeconds > 0 ? remainingSeconds : 90);
+        }
+
+        function closeTimerModal() {
+            document.getElementById('timerModal').classList.add('hidden');
+            clearInterval(breatheInterval);
+        }
+
+        function startBackgroundRestCountdown(seconds) {
+            startRestTimer(seconds, false);
+        }
+
+        function startRestTimer(seconds, openModal = false) {
+            clearInterval(timerInterval);
+            clearInterval(breatheInterval);
+            remainingSeconds = seconds;
+            updateTimerUI();
+
+            if (openModal) {
+                document.getElementById('timerModal').classList.remove('hidden');
+            }
+
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                updateTimerUI();
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('headerTimerText').textContent = 'Ready • Lift';
+                    showToast('Rest complete — CNS Baseline Restored');
+                }
+            }, 1000);
+
+            // 4s Inhale / 6s Exhale Parasympathetic Pacer
+            const ring = document.getElementById('breatheRing');
+            const phaseText = document.getElementById('breathePhaseText');
+            let cycleSec = 0;
+            breatheInterval = setInterval(() => {
+                cycleSec = (cycleSec + 1) % 10;
+                if (cycleSec < 4) {
+                    phaseText.textContent = `4s Nasal Inhale (${4 - cycleSec}s)`;
+                    phaseText.className = 'text-xs font-semibold uppercase tracking-widest text-emerald-400 mt-1.5';
+                    ring.style.transform = 'scale(1.22)';
+                    ring.style.borderColor = '#10B981';
+                } else {
+                    phaseText.textContent = `6s Slow Exhale (${10 - cycleSec}s)`;
+                    phaseText.className = 'text-xs font-semibold uppercase tracking-widest text-cyan-400 mt-1.5';
+                    ring.style.transform = 'scale(0.85)';
+                    ring.style.borderColor = '#06B6D4';
+                }
+            }, 1000);
+        }
+
+        function stopRestTimer() {
+            clearInterval(timerInterval);
+            remainingSeconds = 90;
+            updateTimerUI();
+            document.getElementById('headerTimerText').textContent = 'Pacer / 90s';
+        }
+
+        function updateTimerUI() {
+            const mins = String(Math.floor(remainingSeconds / 60)).padStart(2, '0');
+            const secs = String(remainingSeconds % 60).padStart(2, '0');
+            const formatted = `${mins}:${secs}`;
+            document.getElementById('modalTimerDisplay').textContent = formatted;
+            document.getElementById('headerTimerText').textContent = `Rest ${formatted}`;
+        }
+
+        // ==========================================
+        // 7. NAVIGATION, EXPORT & DEMO SEEDING
+        // ==========================================
+        function switchTab(tabName) {
+            ['workout', 'journal', 'protocol'].forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (t === tabName) {
+                    view.classList.remove('hidden');
+                    btn.className = 'flex flex-col items-center justify-center gap-1 text-emerald-400 transition';
+                } else {
+                    view.classList.add('hidden');
+                    btn.className = 'flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-zinc-300 transition';
+                }
+            });
+
+            if (tabName === 'journal') {
+                updateJournalStats();
+                renderJournalEntries();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function exportJournalJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(journalLogs, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `cns_recomp_journal_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            showToast('Exported JSON Backup');
+        }
+
+        function exportJournalCSV() {
+            if (journalLogs.length === 0) {
+                showToast('No journal entries to export');
+                return;
+            }
+            const rows = [['Date', 'Day', 'Workout', 'Energy State', 'Waist (cm)', 'Exercise', 'Top Set (kg x reps)', 'Back-Off Set (kg x reps)', 'Notes']];
+            journalLogs.forEach(entry => {
+                const dateStr = new Date(entry.timestamp).toLocaleDateString();
+                Object.values(entry.exercises || {}).forEach(ex => {
+                    const top = ex.type === 'duration' ? 'Completed' : `${ex.s1Weight || 0}kg x ${ex.s1Reps || 0}`;
+                    const back = ex.type === 'duration' ? '-' : `${ex.s2Weight || 0}kg x ${ex.s2Reps || 0}`;
+                    rows.push([
+                        dateStr,
+                        `Day ${entry.dayNumber}`,
+                        entry.dayTitle,
+                        entry.energyState,
+                        entry.waist || '',
+                        ex.name,
+                        top,
+                        back,
+                        (entry.note || '').replace(/,/g, ';')
+                    ]);
+                });
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `cns_recomp_lifts_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            showToast('Exported CSV Spreadsheet');
+        }
+
+        function seedSampleLogs() {
+            const yesterday = new Date(Date.now() - 86400000).toISOString();
+            const twoDaysAgo = new Date(Date.now() - 172800000).toISOString();
+
+            const sampleEntries = [
+                {
+                    id: 'log_demo_2',
+                    timestamp: yesterday,
+                    dayNumber: 2,
+                    dayTitle: "Shoulders, Arms & Forearms",
+                    energyState: "Primed",
+                    chemicalBridge: true,
+                    rpeCap: true,
+                    waist: "78.2",
+                    note: "Left 2 reps in the tank on overhead press. Zero brain fog during NinjaTrader session.",
+                    exercises: {
+                        d2_seated_db_press: { name: "Seated Dumbbell Shoulder Press", type: "lift", s1Weight: "27.5", s1Reps: "8", s1Done: true, s2Weight: "22.5", s2Reps: "11", s2Done: true },
+                        d2_cable_lat_raise: { name: "Cable Lateral Raises", type: "lift", s1Weight: "10", s1Reps: "12", s1Done: true, s2Weight: "7.5", s2Reps: "15", s2Done: true },
+                        d2_skull_crushers: { name: "EZ-Bar Skull Crushers", type: "lift", s1Weight: "35", s1Reps: "9", s1Done: true, s2Weight: "30", s2Reps: "12", s2Done: true },
+                        d2_incline_curls: { name: "Incline Dumbbell Curls", type: "lift", s1Weight: "14", s1Reps: "9", s1Done: true, s2Weight: "12", s2Reps: "12", s2Done: true },
+                        d2_rope_pushdown: { name: "Triceps Rope Pushdowns", type: "lift", s1Weight: "25", s1Reps: "11", s1Done: true, s2Weight: "20", s2Reps: "14", s2Done: true },
+                        d2_hammer_curls: { name: "Hammer Curls", type: "lift", s1Weight: "18", s1Reps: "10", s1Done: true, s2Weight: "14", s2Reps: "12", s2Done: true },
+                        d2_wrist_curls: { name: "Seated Barbell Wrist Curls", type: "lift", s1Weight: "30", s1Reps: "18", s1Done: true, s2Weight: "25", s2Reps: "20", s2Done: true },
+                        d2_zone2: { name: "Zone 2 Incline Walk", type: "duration", s1Done: true }
+                    }
+                },
+                {
+                    id: 'log_demo_1',
+                    timestamp: twoDaysAgo,
+                    dayNumber: 1,
+                    dayTitle: "Chest & Back",
+                    energyState: "Primed",
+                    chemicalBridge: true,
+                    rpeCap: true,
+                    waist: "78.4",
+                    note: "Cycle reset after active recovery. L-Tyrosine + Alpha-GPC kicked in right as the market opened.",
+                    exercises: {
+                        d1_incline_db: { name: "Incline Dumbbell Press", type: "lift", s1Weight: "32.5", s1Reps: "8", s1Done: true, s2Weight: "27.5", s2Reps: "11", s2Done: true },
+                        d1_wide_pulldown: { name: "Wide Inward Grip Pulldowns", type: "lift", s1Weight: "70", s1Reps: "8", s1Done: true, s2Weight: "60", s2Reps: "12", s2Done: true },
+                        d1_flat_machine: { name: "Flat Machine Chest Press", type: "lift", s1Weight: "80", s1Reps: "9", s1Done: true, s2Weight: "65", s2Reps: "12", s2Done: true },
+                        d1_tbar_row: { name: "Chest-Supported T-Bar Rows", type: "lift", s1Weight: "60", s1Reps: "9", s1Done: true, s2Weight: "50", s2Reps: "12", s2Done: true },
+                        d1_cable_fly: { name: "Incline Cable Flyes", type: "lift", s1Weight: "15", s1Reps: "12", s1Done: true, s2Weight: "12.5", s2Reps: "15", s2Done: true },
+                        d1_straight_lat: { name: "Straight-Arm Lat Pulldowns", type: "lift", s1Weight: "27.5", s1Reps: "12", s1Done: true, s2Weight: "22.5", s2Reps: "15", s2Done: true },
+                        d1_zone2: { name: "Zone 2 Incline Walk / Cycle", type: "duration", s1Done: true }
+                    }
+                }
+            ];
+
+            journalLogs = [...sampleEntries, ...journalLogs];
+            localStorage.setItem(STORAGE_KEYS.JOURNAL_LOGS, JSON.stringify(journalLogs));
+            loadDayWorkout(currentDayNumber);
+            updateJournalStats();
+            showToast('Baseline demo history loaded!');
+            switchTab('journal');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastBanner');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.remove('hidden');
+            toast.classList.add('flex');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('flex');
+            }, 2600);
+        }
+    </script>
+</body>
+</html>
